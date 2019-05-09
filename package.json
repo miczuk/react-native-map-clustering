@@ -25,7 +25,7 @@
   "peerDependencies": {
     "react": ">=15.4.0 || ^16.0.0-alpha",
     "react-native": ">=0.40",
-    "react-native-maps": ">=0.15.0"
+    "react-native-maps-osmdroid": "^0.23.0-rc2"
   },
   "homepage": "https://github.com/venits/react-native-map-clustering#readme",
   "dependencies": {

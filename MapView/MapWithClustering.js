@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import MapView from 'react-native-maps';
+import MapView from 'react-native-maps-osmdroid';
 import { width as w, height as h } from 'react-native-dimension';
 import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
@@ -10,12 +10,12 @@ export default class MapWithClustering extends Component {
     currentRegion: this.props.region,
     currentChildren: this.props.children,
     clusterStyle: {
-      borderRadius: w(15),
+      borderRadius: w(12),
       backgroundColor: this.props.clusterColor,
       borderColor: this.props.clusterBorderColor,
       borderWidth: this.props.clusterBorderWidth,
-      width: w(15),
-      height: w(15),
+      width: w(12),
+      height: w(12),
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -39,9 +39,16 @@ export default class MapWithClustering extends Component {
       return null
     }
   }
+
   componentDidUpdate(prevProps, prevState) {
     if (this.props.children !== prevProps.children) {
       this.createMarkersOnMap(this.state.currentChildren);
+    }
+
+    if (this.props.region !== prevProps.region) {
+      this.setState({
+        currentRegion: region
+      });
     }
   }
 
@@ -120,13 +127,23 @@ export default class MapWithClustering extends Component {
       return Math.floor(Math.log(mapPx / worldPx / fraction) / Math.LN2);
     }
 
+    function min() {
+      var zoomLevels = []
+      for (var i = 0; i < arguments.length; i++) {
+          if (!isNaN(arguments[i])) {
+            zoomLevels.push(arguments[i]);
+          }
+      }
+      return Math.min.apply(Math, zoomLevels);
+    }
+
     const latFraction = (latRad(bounds[3]) - latRad(bounds[1])) / Math.PI;
     const lngDiff = bounds[2] - bounds[0];
     const lngFraction = ((lngDiff < 0) ? (lngDiff + 360) : lngDiff) / 360;
     const latZoom = zoom(mapDim.height, WORLD_DIM.height, latFraction);
     const lngZoom = zoom(mapDim.width, WORLD_DIM.width, lngFraction);
 
-    return Math.min(latZoom, lngZoom, ZOOM_MAX);
+    return min(latZoom, lngZoom, ZOOM_MAX);
   };
 
   calculateClustersForMap = async (currentRegion = this.state.currentRegion) => {
@@ -175,6 +192,8 @@ export default class MapWithClustering extends Component {
         ref={(ref) => { this.root = ref; }}
         region={this.state.currentRegion}
         onRegionChangeComplete={this.onRegionChangeComplete}
+        minZoomLevel={5}
+        maxZoomLevel={17}
       >
         {this.state.clusteredMarkers}
         {this.state.otherChildren}

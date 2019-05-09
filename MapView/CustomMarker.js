@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Text, View } from 'react-native';
-import { Marker } from 'react-native-maps';
+import { Marker } from 'react-native-maps-osmdroid';
 
 export default class CustomMarker extends Component {
   shouldComponentUpdate(nextProps) {
