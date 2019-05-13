@@ -24,6 +24,7 @@ export default class MapWithClustering extends Component {
       color: this.props.clusterTextColor,
       fontWeight: 'bold',
     },
+    minZoomLevel: null
   };
 
   componentDidMount() {
@@ -47,7 +48,7 @@ export default class MapWithClustering extends Component {
 
     if (this.props.region !== prevProps.region) {
       this.setState({
-        currentRegion: region
+        currentRegion: this.props.region
       });
     }
   }
@@ -192,8 +193,13 @@ export default class MapWithClustering extends Component {
         ref={(ref) => { this.root = ref; }}
         region={this.state.currentRegion}
         onRegionChangeComplete={this.onRegionChangeComplete}
-        minZoomLevel={5}
+        minZoomLevel={this.state.minZoomLevel}
         maxZoomLevel={17}
+        onMapReady={() => {
+          this.setState({
+            minZoomLevel: 5
+          })
+        }}
       >
         {this.state.clusteredMarkers}
         {this.state.otherChildren}
