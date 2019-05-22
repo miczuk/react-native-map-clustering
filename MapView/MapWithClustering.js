@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import MapView from 'react-native-maps-osmdroid';
+import { UrlTile } from 'react-native-maps-osmdroid';
+import { View, Text, StyleSheet } from 'react-native';
 import { width as w, height as h } from 'react-native-dimension';
 import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
@@ -213,22 +215,31 @@ export default class MapWithClustering extends Component {
 
   render() {
     return (
-      <MapView
-        {...this.removeChildrenFromProps(this.props)}
-        ref={(ref) => { this.root = ref; }}
-        region={this.state.currentRegion}
-        onRegionChangeComplete={this.onRegionChangeComplete}
-        minZoomLevel={this.state.minZoomLevel}
-        maxZoomLevel={17}
-        onMapReady={() => {
-          this.setState({
-            minZoomLevel: 5
-          })
-        }}
-      >
-        {this.state.clusteredMarkers}
-        {this.state.otherChildren}
-      </MapView>
+      <>
+        <MapView
+          {...this.removeChildrenFromProps(this.props)}
+          ref={(ref) => { this.root = ref; }}
+          region={this.state.currentRegion}
+          onRegionChangeComplete={this.onRegionChangeComplete}
+          minZoomLevel={this.state.minZoomLevel}
+          maxZoomLevel={17}
+          onMapReady={() => {
+            this.setState({
+              minZoomLevel: 5
+            })
+          }}
+        >
+          <UrlTile        
+            urlTemplate={"https://tile.openstreetmap.org/{z}/{x}/{y}.png "}                   
+            maximumZ={19}
+          />
+          {this.state.clusteredMarkers}
+          {this.state.otherChildren}        
+        </MapView>
+        <View style={styles.licenceBanner}>
+          <Text style={styles.licenceBannerText}>Powered by OpenStreetMap</Text>
+        </View>
+      </>
     );
   }
 }
@@ -259,3 +270,21 @@ MapWithClustering.defaultProps = {
   clusterTextSize: totalSize(2.4),
   onClusterPress: () => {},
 };
+
+const styles = StyleSheet.create({
+  licenceBanner: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 5,
+    paddingRight: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',  
+  },
+  licenceBannerText: {
+    fontSize: 8,
+    color: '#000',
+    opacity: 1.0,    
+  }
+});
