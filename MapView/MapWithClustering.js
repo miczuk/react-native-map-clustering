@@ -8,26 +8,27 @@ import CustomMarker from './CustomMarker';
 export default class MapWithClustering extends Component {
   state = {
     currentRegion: this.props.region,
-    currentChildren: this.props.children,
+    userPosition: this.props.userPosition,
+    currentChildren: this.props.children,    
     clusterStyle: {
-      borderRadius: w(6),
+      borderRadius: w(12),
       backgroundColor: this.props.clusterColor,
       borderColor: this.props.clusterBorderColor,
       borderWidth: this.props.clusterBorderWidth,
       width: w(12),
       height: w(12),
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'center',      
     },
     clusterTextStyle: {
       fontSize: this.props.clusterTextSize,
       color: this.props.clusterTextColor,
       fontWeight: 'bold',
     },
-    minZoomLevel: null
+    minZoomLevel: null,
   };
 
-  componentDidMount() {
+  componentDidMount() {    
     this.createMarkersOnMap();
   }
 
@@ -51,6 +52,12 @@ export default class MapWithClustering extends Component {
         currentRegion: this.props.region
       });
     }
+
+    if (this.props.userPosition !== prevProps.userPosition) {     
+      this.setState({
+        userPosition: this.props.userPosition
+      });
+    }
   }
 
   onRegionChangeComplete = (region) => {
@@ -62,9 +69,20 @@ export default class MapWithClustering extends Component {
         this.calculateClustersForMap(region);
       }
     }
-    if(this.props.onRegionChangeComplete)
-      this.props.onRegionChangeComplete(region)
+    if(this.props.onRegionChangeComplete) {
+      if(this.state.userPosition) {
+        let isUserMarkerVisible = this.checkUserVisibility(region, this.state.userPosition);
+        this.props.onRegionChangeComplete(region, isUserMarkerVisible);
+      } else {
+        this.props.onRegionChangeComplete(region);
+      }      
+    }      
   };
+
+  checkUserVisibility(region, userPosition) {
+    let bBox = this._calculateBBox(region);
+    return (inRange(userPosition.latitude, bBox[1], bBox[3]) && inRange(userPosition.longitude, bBox[0], bBox[2]));
+  }
 
   createMarkersOnMap = () => {
     const markers = [];
@@ -112,6 +130,13 @@ export default class MapWithClustering extends Component {
     region.latitude - region.latitudeDelta, // southLat - min lat
     region.longitude + region.longitudeDelta , // eastLng - max lng
     region.latitude + region.latitudeDelta// northLat - max lat
+  ];
+
+  _calculateBBox = region => [
+    region.longitude - (region.longitudeDelta / 2), // westLng - min lng
+    region.latitude - (region.latitudeDelta / 2.35), // southLat - min lat
+    region.longitude + (region.longitudeDelta / 2) , // eastLng - max lng
+    region.latitude + (region.latitudeDelta / 2.35)// northLat - max lat
   ];
 
   getBoundsZoomLevel = (bounds, mapDim) => {
@@ -221,6 +246,8 @@ MapWithClustering.propTypes = {
 };
 
 const totalSize = num => (Math.sqrt((h(100) * h(100)) + (w(100) * w(100))) * num) / 100;
+
+const inRange = (val, min, max) => ((val - min) * (val - max) < 0); 
 
 MapWithClustering.defaultProps = {
   clustering: true,
