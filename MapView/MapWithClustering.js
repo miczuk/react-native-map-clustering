@@ -13,12 +13,12 @@ export default class MapWithClustering extends Component {
     userPosition: this.props.userPosition,
     currentChildren: this.props.children,    
     clusterStyle: {
-      borderRadius: w(12),
+      borderRadius: w(6),
       backgroundColor: this.props.clusterColor,
       borderColor: this.props.clusterBorderColor,
       borderWidth: this.props.clusterBorderWidth,
-      width: w(12),
-      height: w(12),
+      width: w(14),
+      height: w(14),
       justifyContent: 'center',
       alignItems: 'center',      
     },
@@ -262,7 +262,7 @@ const inRange = (val, min, max) => ((val - min) * (val - max) < 0);
 
 MapWithClustering.defaultProps = {
   clustering: true,
-  radius: w(5),
+  radius: w(6),
   clusterColor: '#F5F5F5',
   clusterTextColor: '#FF5252',
   clusterBorderColor: '#FF5252',
