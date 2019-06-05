@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import MapView from 'react-native-maps-osmdroid';
+import { UrlTile } from 'react-native-maps-osmdroid';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { width as w, height as h } from 'react-native-dimension';
 import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
@@ -8,26 +10,27 @@ import CustomMarker from './CustomMarker';
 export default class MapWithClustering extends Component {
   state = {
     currentRegion: this.props.region,
-    currentChildren: this.props.children,
+    userPosition: this.props.userPosition,
+    currentChildren: this.props.children,    
     clusterStyle: {
       borderRadius: w(6),
       backgroundColor: this.props.clusterColor,
       borderColor: this.props.clusterBorderColor,
       borderWidth: this.props.clusterBorderWidth,
-      width: w(12),
-      height: w(12),
+      width: w(14),
+      height: w(14),
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'center',      
     },
     clusterTextStyle: {
       fontSize: this.props.clusterTextSize,
       color: this.props.clusterTextColor,
       fontWeight: 'bold',
     },
-    minZoomLevel: null
+    minZoomLevel: null,
   };
 
-  componentDidMount() {
+  componentDidMount() {    
     this.createMarkersOnMap();
   }
 
@@ -51,6 +54,12 @@ export default class MapWithClustering extends Component {
         currentRegion: this.props.region
       });
     }
+
+    if (this.props.userPosition !== prevProps.userPosition) {     
+      this.setState({
+        userPosition: this.props.userPosition
+      });
+    }
   }
 
   onRegionChangeComplete = (region) => {
@@ -62,9 +71,20 @@ export default class MapWithClustering extends Component {
         this.calculateClustersForMap(region);
       }
     }
-    if(this.props.onRegionChangeComplete)
-      this.props.onRegionChangeComplete(region)
+    if(this.props.onRegionChangeComplete) {
+      if(this.state.userPosition) {
+        let isUserMarkerVisible = this.checkUserVisibility(region, this.state.userPosition);
+        this.props.onRegionChangeComplete(region, isUserMarkerVisible);
+      } else {
+        this.props.onRegionChangeComplete(region);
+      }      
+    }      
   };
+
+  checkUserVisibility(region, userPosition) {
+    let bBox = this._calculateBBox(region);
+    return (inRange(userPosition.latitude, bBox[1], bBox[3]) && inRange(userPosition.longitude, bBox[0], bBox[2]));
+  }
 
   createMarkersOnMap = () => {
     const markers = [];
@@ -114,6 +134,13 @@ export default class MapWithClustering extends Component {
     region.latitude + region.latitudeDelta// northLat - max lat
   ];
 
+  _calculateBBox = region => [
+    region.longitude - (region.longitudeDelta / 2), // westLng - min lng
+    region.latitude - (region.latitudeDelta / 2.35), // southLat - min lat
+    region.longitude + (region.longitudeDelta / 2) , // eastLng - max lng
+    region.latitude + (region.latitudeDelta / 2.35)// northLat - max lat
+  ];
+
   getBoundsZoomLevel = (bounds, mapDim) => {
     const WORLD_DIM = { height: mapDim.height, width: mapDim.width };
     const ZOOM_MAX = 20;
@@ -149,8 +176,7 @@ export default class MapWithClustering extends Component {
 
   calculateClustersForMap = async (currentRegion = this.state.currentRegion) => {
     let clusteredMarkers = [];
-
-    if (this.props.clustering && this.superCluster) {
+    if (this.props.clustering && this.superCluster && shouldMarkersBeClustered(currentRegion.longitudeDelta)) {
       const bBox = this.calculateBBox(this.state.currentRegion);
       let zoom = this.getBoundsZoomLevel(bBox, { height: h(100), width: w(100) });
       const clusters = await this.superCluster.getClusters([bBox[0], bBox[1], bBox[2], bBox[3]], zoom);
@@ -188,22 +214,31 @@ export default class MapWithClustering extends Component {
 
   render() {
     return (
-      <MapView
-        {...this.removeChildrenFromProps(this.props)}
-        ref={(ref) => { this.root = ref; }}
-        region={this.state.currentRegion}
-        onRegionChangeComplete={this.onRegionChangeComplete}
-        minZoomLevel={this.state.minZoomLevel}
-        maxZoomLevel={17}
-        onMapReady={() => {
-          this.setState({
-            minZoomLevel: 5
-          })
-        }}
-      >
-        {this.state.clusteredMarkers}
-        {this.state.otherChildren}
-      </MapView>
+      <>
+        <MapView
+          {...this.removeChildrenFromProps(this.props)}
+          ref={(ref) => { this.root = ref; }}
+          region={this.state.currentRegion}
+          onRegionChangeComplete={this.onRegionChangeComplete}
+          minZoomLevel={this.state.minZoomLevel}
+          maxZoomLevel={17}
+          onMapReady={() => {
+            this.setState({
+              minZoomLevel: 5
+            })
+          }}
+        >
+          <UrlTile        
+            urlTemplate={"https://tile.openstreetmap.org/{z}/{x}/{y}.png "}                   
+            maximumZ={19}
+          />
+          {this.state.clusteredMarkers}
+          {this.state.otherChildren}        
+        </MapView>
+        <View style={styles.licenceBanner}>
+          <Text style={styles.licenceBannerText}>Powered by OpenStreetMap</Text>
+        </View>
+      </>
     );
   }
 }
@@ -222,9 +257,22 @@ MapWithClustering.propTypes = {
 
 const totalSize = num => (Math.sqrt((h(100) * h(100)) + (w(100) * w(100))) * num) / 100;
 
+const inRange = (val, min, max) => ((val - min) * (val - max) < 0);
+
+const deltaToZoom = delta => Math.round(Math.log(360 / delta) / Math.LN2);
+
+const shouldMarkersBeClustered = delta => {
+  const maxZoom = Platform.OS === 'android' ? 16 : 17;
+  let zoom = deltaToZoom(delta);
+
+  let clusterMarkers = zoom >= maxZoom ? false : true;
+  
+  return clusterMarkers;
+}
+
 MapWithClustering.defaultProps = {
   clustering: true,
-  radius: w(5),
+  radius: w(6),
   clusterColor: '#F5F5F5',
   clusterTextColor: '#FF5252',
   clusterBorderColor: '#FF5252',
@@ -232,3 +280,21 @@ MapWithClustering.defaultProps = {
   clusterTextSize: totalSize(2.4),
   onClusterPress: () => {},
 };
+
+const styles = StyleSheet.create({
+  licenceBanner: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 5,
+    paddingRight: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',  
+  },
+  licenceBannerText: {
+    fontSize: 8,
+    color: '#000',
+    opacity: 1.0,    
+  }
+});
