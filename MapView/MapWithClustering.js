@@ -6,6 +6,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { width as w, height as h } from 'react-native-dimension';
 import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
+import deepEqual from 'deep-equal';
 
 export default class MapWithClustering extends Component {
   state = {
@@ -64,16 +65,28 @@ export default class MapWithClustering extends Component {
 
   onRegionChangeComplete = (region) => {
     const { latitude, latitudeDelta, longitude, longitudeDelta } = this.state.currentRegion;
-    if (region.longitudeDelta <= 80) {
+
+    const equal = deepEqual({
+      latitude: region.latitude,
+      longitude: region.longitude,
+      longitudeDelta: region.longitudeDelta,  
+    }, 
+    {
+      latitude: latitude,
+      longitude: longitude,
+      longitudeDelta: longitudeDelta
+    });
+
+    if (region.longitudeDelta <= 80 && !equal) {
       if ((Math.abs(region.latitudeDelta - latitudeDelta) > latitudeDelta / 8)
         || (Math.abs(region.longitude - longitude) >= longitudeDelta / 5)
         || (Math.abs(region.latitude - latitude) >= latitudeDelta / 5)) {
         this.calculateClustersForMap(region);
       }
     }
-    if(this.props.onRegionChangeComplete) {
+    if(this.props.onRegionChangeComplete && !equal) {
       if(this.state.userPosition) {
-        let isUserMarkerVisible = this.checkUserVisibility(region, this.state.userPosition);
+        let isUserMarkerVisible = this.checkUserVisibility(region, this.state.userPosition);       
         this.props.onRegionChangeComplete(region, isUserMarkerVisible);
       } else {
         this.props.onRegionChangeComplete(region);
@@ -135,10 +148,10 @@ export default class MapWithClustering extends Component {
   ];
 
   _calculateBBox = region => [
-    region.longitude - (region.longitudeDelta / 2), // westLng - min lng
-    region.latitude - (region.latitudeDelta / 2.35), // southLat - min lat
-    region.longitude + (region.longitudeDelta / 2) , // eastLng - max lng
-    region.latitude + (region.latitudeDelta / 2.35)// northLat - max lat
+    region.longitude - (region.longitudeDelta / 2.1), // westLng - min lng
+    region.latitude - (region.latitudeDelta / 2.45), // southLat - min lat
+    region.longitude + (region.longitudeDelta / 2.1) , // eastLng - max lng
+    region.latitude + (region.latitudeDelta / 2.45)// northLat - max lat
   ];
 
   getBoundsZoomLevel = (bounds, mapDim) => {
