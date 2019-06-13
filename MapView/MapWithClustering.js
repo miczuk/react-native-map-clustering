@@ -237,7 +237,7 @@ export default class MapWithClustering extends Component {
           maxZoomLevel={17}
           onMapReady={() => {
             this.setState({
-              minZoomLevel: 5
+              minZoomLevel: 2
             })
           }}
         >
