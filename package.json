@@ -32,7 +32,7 @@
     "@mapbox/geo-viewport": "^0.2.2",
     "prop-types": "^15.6.0",
     "react-native-dimension": "^1.0.6",
-    "supercluster": "https://github.com/krzysztofch19/supercluster#a519f1a6e9a483af5ae3a5f7d70ba60138bed5fa",
+    "supercluster": "https://github.com/krzysztofch19/supercluster#8bf74c33de18aa6acd300e2e7f3ed2b4d090b2c1",
     "deep-equal": "^1.0.1"
   }
 }
