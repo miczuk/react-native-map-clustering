@@ -63,7 +63,7 @@ export default class MapWithClustering extends Component {
     }
   }
 
-  onRegionChangeComplete = (region) => {
+  onRegionChangeComplete = (region) => {   
     const { latitude, latitudeDelta, longitude, longitudeDelta } = this.state.currentRegion;
 
     const equal = deepEqual({
@@ -77,14 +77,15 @@ export default class MapWithClustering extends Component {
       longitudeDelta: longitudeDelta
     });
 
-    if (region.longitudeDelta <= 80 && !equal) {
+    if (region.longitudeDelta <= 80 && !equal && shouldClustersBeCalculated(region.longitudeDelta, this.state.currentRegion.longitudeDelta)) {       
       if ((Math.abs(region.latitudeDelta - latitudeDelta) > latitudeDelta / 8)
         || (Math.abs(region.longitude - longitude) >= longitudeDelta / 5)
-        || (Math.abs(region.latitude - latitude) >= latitudeDelta / 5)) {
+        || (Math.abs(region.latitude - latitude) >= latitudeDelta / 5)) {        
         this.calculateClustersForMap(region);
       }
     }
-    if(this.props.onRegionChangeComplete && !equal) {
+
+    if(this.props.onRegionChangeComplete && !equal) {    
       if(this.state.userPosition) {
         let isUserMarkerVisible = this.checkUserVisibility(region, this.state.userPosition);       
         this.props.onRegionChangeComplete(region, isUserMarkerVisible);
@@ -189,7 +190,7 @@ export default class MapWithClustering extends Component {
 
   calculateClustersForMap = async (currentRegion = this.state.currentRegion) => {
     let clusteredMarkers = [];
-    if (this.props.clustering && this.superCluster && shouldMarkersBeClustered(currentRegion.longitudeDelta)) {
+    if (this.props.clustering && this.superCluster && shouldMarkersBeClustered(currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta)) {
       const bBox = this.calculateBBox(this.state.currentRegion);
       let zoom = this.getBoundsZoomLevel(bBox, { height: h(100), width: w(100) });
       const clusters = await this.superCluster.getClusters([bBox[0], bBox[1], bBox[2], bBox[3]], zoom);
@@ -209,9 +210,9 @@ export default class MapWithClustering extends Component {
       clusteredMarkers = this.state.markers.map(marker => marker.marker);
     }
 
-    this.setState({
-      clusteredMarkers,
+    this.setState({      
       currentRegion,
+      clusteredMarkers,
     });
   };
 
@@ -240,6 +241,7 @@ export default class MapWithClustering extends Component {
               minZoomLevel: 2
             })
           }}
+          ref={this.props.mapRef}
         >
           <UrlTile        
             urlTemplate={"https://tile.openstreetmap.org/{z}/{x}/{y}.png "}                   
@@ -274,11 +276,24 @@ const inRange = (val, min, max) => ((val - min) * (val - max) < 0);
 
 const deltaToZoom = delta => Math.round(Math.log(360 / delta) / Math.LN2);
 
+const shouldClustersBeCalculated = (delta, previousDelta) => {
+  const minZoom = 3;
+
+  let currentZoom = deltaToZoom(delta);
+  let previousZoom = deltaToZoom(previousDelta);
+  
+  let calculateClusters = currentZoom <= minZoom ?
+                            true : previousZoom == currentZoom ? 
+                            false : true;
+  
+  return calculateClusters;
+}
+
 const shouldMarkersBeClustered = delta => {
   const maxZoom = Platform.OS === 'android' ? 16 : 17;
-  let zoom = deltaToZoom(delta);
+  let currentZoom = deltaToZoom(delta); 
 
-  let clusterMarkers = zoom >= maxZoom ? false : true;
+  let clusterMarkers = currentZoom >= maxZoom ? false : true;
   
   return clusterMarkers;
 }
