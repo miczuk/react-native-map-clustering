@@ -103,6 +103,7 @@ export default class MapWithClustering extends Component {
   createMarkersOnMap = () => {
     const markers = [];
     const otherChildren = [];
+    let selectedMarker;
 
     React.Children.forEach(this.props.children, (marker) => {
       if (marker !== null) {
@@ -118,6 +119,8 @@ export default class MapWithClustering extends Component {
               ],
             },
           });
+        } else if (marker.props.selected) {
+          selectedMarker = marker;
         } else {
           otherChildren.push(marker);
         }
@@ -137,7 +140,7 @@ export default class MapWithClustering extends Component {
       markers,
       otherChildren,
     }, () => {
-      this.calculateClustersForMap();
+      this.calculateClustersForMap(undefined, selectedMarker);
     });
   };
 
@@ -188,7 +191,7 @@ export default class MapWithClustering extends Component {
     return min(latZoom, lngZoom, ZOOM_MAX);
   };
 
-  calculateClustersForMap = async (currentRegion = this.state.currentRegion) => {
+  calculateClustersForMap = async (currentRegion = this.state.currentRegion, selectedMarker) => {
     let clusteredMarkers = [];
     if (this.props.clustering && this.superCluster && shouldMarkersBeClustered(currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta)) {
       const bBox = this.calculateBBox(this.state.currentRegion);
@@ -208,6 +211,10 @@ export default class MapWithClustering extends Component {
       />));
     } else {
       clusteredMarkers = this.state.markers.map(marker => marker.marker);
+    }
+
+    if (selectedMarker) {
+      clusteredMarkers.push(selectedMarker);
     }
 
     this.setState({      
@@ -248,7 +255,7 @@ export default class MapWithClustering extends Component {
             maximumZ={19}
           />
           {this.state.clusteredMarkers}
-          {this.state.otherChildren}        
+          {this.state.otherChildren}
         </MapView>
         <View style={styles.licenceBanner}>
           <Text style={styles.licenceBannerText}>Powered by OpenStreetMap</Text>
