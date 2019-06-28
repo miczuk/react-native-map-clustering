@@ -63,7 +63,7 @@ export default class MapWithClustering extends Component {
     }
   }
 
-  onRegionChangeComplete = (region) => {   
+  onRegionChangeComplete = (region) => {
     const { latitude, latitudeDelta, longitude, longitudeDelta } = this.state.currentRegion;
 
     const equal = deepEqual({
@@ -139,8 +139,9 @@ export default class MapWithClustering extends Component {
     this.setState({
       markers,
       otherChildren,
+      selectedMarker,
     }, () => {
-      this.calculateClustersForMap(undefined, selectedMarker);
+      this.calculateClustersForMap();
     });
   };
 
@@ -191,7 +192,7 @@ export default class MapWithClustering extends Component {
     return min(latZoom, lngZoom, ZOOM_MAX);
   };
 
-  calculateClustersForMap = async (currentRegion = this.state.currentRegion, selectedMarker) => {
+  calculateClustersForMap = async (currentRegion = this.state.currentRegion) => {
     let clusteredMarkers = [];
     if (this.props.clustering && this.superCluster && shouldMarkersBeClustered(currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta)) {
       const bBox = this.calculateBBox(this.state.currentRegion);
@@ -212,9 +213,9 @@ export default class MapWithClustering extends Component {
     } else {
       clusteredMarkers = this.state.markers.map(marker => marker.marker);
     }
-
-    if (selectedMarker) {
-      clusteredMarkers.push(selectedMarker);
+    
+    if (this.state.selectedMarker) {      
+      clusteredMarkers.push(this.state.selectedMarker);
     }
 
     this.setState({      
@@ -251,11 +252,11 @@ export default class MapWithClustering extends Component {
           ref={this.props.mapRef}
         >
           <UrlTile        
-            urlTemplate={"https://tile.openstreetmap.org/{z}/{x}/{y}.png "}                   
+            urlTemplate={"https://tile.openstreetmap.org/{z}/{x}/{y}.png "}
             maximumZ={19}
           />
           {this.state.clusteredMarkers}
-          {this.state.otherChildren}
+          {this.state.otherChildren}          
         </MapView>
         <View style={styles.licenceBanner}>
           <Text style={styles.licenceBannerText}>Powered by OpenStreetMap</Text>
