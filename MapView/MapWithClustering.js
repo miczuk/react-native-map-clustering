@@ -252,7 +252,7 @@ export default class MapWithClustering extends Component {
           ref={this.props.mapRef}
         >
           <UrlTile        
-            urlTemplate={"https://tile.openstreetmap.org/{z}/{x}/{y}.png "}
+            urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
             maximumZ={19}
           />
           {this.state.clusteredMarkers}
