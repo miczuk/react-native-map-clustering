@@ -243,7 +243,7 @@ export default class MapWithClustering extends Component {
           region={this.state.currentRegion}
           onRegionChangeComplete={this.onRegionChangeComplete}
           minZoomLevel={this.state.minZoomLevel}
-          maxZoomLevel={17}
+          maxZoomLevel={this.props.lockMaxZoomLevel ? 17 : 20}
           onMapReady={() => {
             this.setState({
               minZoomLevel: 2
