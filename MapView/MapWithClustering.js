@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import MapView from 'react-native-maps-osmdroid';
-import { UrlTile } from 'react-native-maps-osmdroid';
+import MapView from 'react-native-maps';
+import { UrlTile } from 'react-native-maps';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { width as w, height as h } from 'react-native-dimension';
 import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
 import deepEqual from 'deep-equal';
+
+import { DOCUMENT_DIR } from '../../../src/shared/constants/filePaths';
 
 export default class MapWithClustering extends Component {
   state = {
@@ -251,9 +253,9 @@ export default class MapWithClustering extends Component {
           }}
           ref={this.props.mapRef}
         >
-          <UrlTile        
-            urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
-            maximumZ={19}
+          <UrlTile         
+            urlTemplate={`file://${DOCUMENT_DIR}/mapTiles/basic/{z}/{x}/{y}.png`}          
+            zIndex={1}
           />
           {this.state.clusteredMarkers}
           {this.state.otherChildren}          
