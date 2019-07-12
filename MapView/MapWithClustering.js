@@ -298,7 +298,7 @@ const shouldClustersBeCalculated = (delta, previousDelta) => {
 }
 
 const shouldMarkersBeClustered = delta => {
-  const maxZoom = Platform.OS === 'android' ? 16 : 17;
+  const maxZoom = Platform.OS === 'android' ? 8 : 9;
   let currentZoom = deltaToZoom(delta); 
 
   let clusterMarkers = currentZoom >= maxZoom ? false : true;
