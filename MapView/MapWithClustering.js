@@ -12,7 +12,7 @@ export default class MapWithClustering extends Component {
   state = {
     currentRegion: this.props.region,
     userPosition: this.props.userPosition,
-    currentChildren: this.props.children,    
+    currentChildren: this.props.children,
     clusterStyle: {
       borderRadius: w(6),
       backgroundColor: this.props.clusterColor,
@@ -21,7 +21,7 @@ export default class MapWithClustering extends Component {
       width: w(14),
       height: w(14),
       justifyContent: 'center',
-      alignItems: 'center',      
+      alignItems: 'center',
     },
     clusterTextStyle: {
       fontSize: this.props.clusterTextSize,
@@ -31,7 +31,7 @@ export default class MapWithClustering extends Component {
     minZoomLevel: null,
   };
 
-  componentDidMount() {    
+  componentDidMount() {
     this.createMarkersOnMap();
   }
 
@@ -56,7 +56,7 @@ export default class MapWithClustering extends Component {
       });
     }
 
-    if (this.props.userPosition !== prevProps.userPosition) {     
+    if (this.props.userPosition !== prevProps.userPosition) {
       this.setState({
         userPosition: this.props.userPosition
       });
@@ -67,32 +67,32 @@ export default class MapWithClustering extends Component {
     const { latitude, latitudeDelta, longitude, longitudeDelta } = this.state.currentRegion;
 
     const equal = deepEqual({
-      latitude: region.latitude,
-      longitude: region.longitude,
-      longitudeDelta: region.longitudeDelta,  
-    }, 
-    {
-      latitude: latitude,
-      longitude: longitude,
-      longitudeDelta: longitudeDelta
-    });
+        latitude: region.latitude,
+        longitude: region.longitude,
+        longitudeDelta: region.longitudeDelta,
+      },
+      {
+        latitude: latitude,
+        longitude: longitude,
+        longitudeDelta: longitudeDelta
+      });
 
-    if (region.longitudeDelta <= 80 && !equal && shouldClustersBeCalculated(region.longitudeDelta, this.state.currentRegion.longitudeDelta)) {       
+    if (region.longitudeDelta <= 80 && !equal && shouldClustersBeCalculated(region.longitudeDelta, this.state.currentRegion.longitudeDelta)) {
       if ((Math.abs(region.latitudeDelta - latitudeDelta) > latitudeDelta / 8)
         || (Math.abs(region.longitude - longitude) >= longitudeDelta / 5)
-        || (Math.abs(region.latitude - latitude) >= latitudeDelta / 5)) {        
+        || (Math.abs(region.latitude - latitude) >= latitudeDelta / 5)) {
         this.calculateClustersForMap(region);
       }
     }
 
-    if(this.props.onRegionChangeComplete && !equal) {    
+    if(this.props.onRegionChangeComplete && !equal) {
       if(this.state.userPosition) {
-        let isUserMarkerVisible = this.checkUserVisibility(region, this.state.userPosition);       
+        let isUserMarkerVisible = this.checkUserVisibility(region, this.state.userPosition);
         this.props.onRegionChangeComplete(region, isUserMarkerVisible);
       } else {
         this.props.onRegionChangeComplete(region);
-      }      
-    }      
+      }
+    }
   };
 
   checkUserVisibility(region, userPosition) {
@@ -124,13 +124,13 @@ export default class MapWithClustering extends Component {
         } else {
           otherChildren.push(marker);
         }
-      } 
+      }
     });
 
     if (!this.superCluster) {
       this.superCluster = SuperCluster({
         radius: this.props.radius,
-        maxZoom: 20,
+        maxZoom: 9,
         minZoom: 1,
       });
     }
@@ -176,9 +176,9 @@ export default class MapWithClustering extends Component {
     function min() {
       var zoomLevels = []
       for (var i = 0; i < arguments.length; i++) {
-          if (!isNaN(arguments[i])) {
-            zoomLevels.push(arguments[i]);
-          }
+        if (!isNaN(arguments[i])) {
+          zoomLevels.push(arguments[i]);
+        }
       }
       return Math.min.apply(Math, zoomLevels);
     }
@@ -196,10 +196,10 @@ export default class MapWithClustering extends Component {
     let clusteredMarkers = [];
     if (this.props.clustering && this.superCluster && shouldMarkersBeClustered(currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta)) {
       const bBox = this.calculateBBox(this.state.currentRegion);
-      let zoom = this.getBoundsZoomLevel(bBox, { height: h(100), width: w(100) });
+      let zoom = deltaToZoom(currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta) - 3;
       const clusters = await this.superCluster.getClusters([bBox[0], bBox[1], bBox[2], bBox[3]], zoom);
-      const CustomDefinedMarker = this.props.customDefinedMarker || CustomMarker
-      
+      const CustomDefinedMarker = this.props.customDefinedMarker || CustomMarker;
+
       clusteredMarkers = clusters.map(cluster => (<CustomDefinedMarker
         pointCount={cluster.properties.point_count}
         clusterId={cluster.properties.cluster_id}
@@ -213,12 +213,12 @@ export default class MapWithClustering extends Component {
     } else {
       clusteredMarkers = this.state.markers.map(marker => marker.marker);
     }
-    
-    if (this.state.selectedMarker) {      
+
+    if (this.state.selectedMarker) {
       clusteredMarkers.push(this.state.selectedMarker);
     }
 
-    this.setState({      
+    this.setState({
       currentRegion,
       clusteredMarkers,
     });
@@ -251,12 +251,12 @@ export default class MapWithClustering extends Component {
           }}
           ref={this.props.mapRef}
         >
-          <UrlTile        
+          <UrlTile
             urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
             maximumZ={19}
           />
           {this.state.clusteredMarkers}
-          {this.state.otherChildren}          
+          {this.state.otherChildren}
         </MapView>
         <View style={styles.licenceBanner}>
           <Text style={styles.licenceBannerText}>Powered by OpenStreetMap</Text>
@@ -285,24 +285,24 @@ const inRange = (val, min, max) => ((val - min) * (val - max) < 0);
 const deltaToZoom = delta => Math.round(Math.log(360 / delta) / Math.LN2);
 
 const shouldClustersBeCalculated = (delta, previousDelta) => {
-  const minZoom = 3;
+  const minZoom = 1;
 
   let currentZoom = deltaToZoom(delta);
   let previousZoom = deltaToZoom(previousDelta);
-  
+
   let calculateClusters = currentZoom <= minZoom ?
-                            true : previousZoom == currentZoom ? 
-                            false : true;
-  
+    true : previousZoom == currentZoom ?
+      false : true;
+
   return calculateClusters;
 }
 
 const shouldMarkersBeClustered = delta => {
-  const maxZoom = Platform.OS === 'android' ? 8 : 9;
-  let currentZoom = deltaToZoom(delta); 
+  const maxZoom = Platform.OS === 'android' ? 16 : 17;
+  let currentZoom = deltaToZoom(delta);
 
   let clusterMarkers = currentZoom >= maxZoom ? false : true;
-  
+
   return clusterMarkers;
 }
 
@@ -326,11 +326,11 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     paddingLeft: 5,
     paddingRight: 5,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',  
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   licenceBannerText: {
     fontSize: 8,
     color: '#000',
-    opacity: 1.0,    
+    opacity: 1.0,
   }
 });
