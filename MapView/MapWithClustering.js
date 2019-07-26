@@ -146,10 +146,10 @@ export default class MapWithClustering extends Component {
   };
 
   calculateBBox = region => [
-    region.longitude - region.longitudeDelta, // westLng - min lng
-    region.latitude - region.latitudeDelta, // southLat - min lat
-    region.longitude + region.longitudeDelta , // eastLng - max lng
-    region.latitude + region.latitudeDelta// northLat - max lat
+    region.longitude - region.longitudeDelta/2, // westLng - min lng
+    region.latitude - region.latitudeDelta/2, // southLat - min lat
+    region.longitude + region.longitudeDelta/2 , // eastLng - max lng
+    region.latitude + region.latitudeDelta/2// northLat - max lat
   ];
 
   _calculateBBox = region => [
@@ -198,7 +198,7 @@ export default class MapWithClustering extends Component {
       const bBox = this.calculateBBox(this.state.currentRegion);
       let zoom = deltaToZoom(currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta) - 3;
       const clusters = await this.superCluster.getClusters([bBox[0], bBox[1], bBox[2], bBox[3]], zoom);
-      const CustomDefinedMarker = this.props.customDefinedMarker || CustomMarker;
+      const CustomDefinedMarker = this.props.customDefinedMarker || CustomMarker
 
       clusteredMarkers = clusters.map(cluster => (<CustomDefinedMarker
         pointCount={cluster.properties.point_count}
@@ -285,7 +285,7 @@ const inRange = (val, min, max) => ((val - min) * (val - max) < 0);
 const deltaToZoom = delta => Math.round(Math.log(360 / delta) / Math.LN2);
 
 const shouldClustersBeCalculated = (delta, previousDelta) => {
-  const minZoom = 1;
+  const minZoom = 3;
 
   let currentZoom = deltaToZoom(delta);
   let previousZoom = deltaToZoom(previousDelta);
@@ -298,10 +298,11 @@ const shouldClustersBeCalculated = (delta, previousDelta) => {
 }
 
 const shouldMarkersBeClustered = delta => {
-  const maxZoom = Platform.OS === 'android' ? 16 : 17;
+  const maxZoom = Platform.OS === 'android' ? 8 : 9;
   let currentZoom = deltaToZoom(delta);
 
-  let clusterMarkers = currentZoom >= maxZoom ? false : true;
+  // let clusterMarkers = currentZoom >= maxZoom ? false : true;
+  let clusterMarkers =true;
 
   return clusterMarkers;
 }
