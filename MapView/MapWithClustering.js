@@ -254,6 +254,8 @@ export default class MapWithClustering extends Component {
           <UrlTile
             urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
             maximumZ={19}
+            minimumZ={2}
+            shouldReplaceMapContent={true}
           />
           {this.state.clusteredMarkers}
           {this.state.otherChildren}
