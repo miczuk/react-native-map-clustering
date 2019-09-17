@@ -33,6 +33,7 @@
     "prop-types": "^15.6.0",
     "react-native-dimension": "^1.0.6",
     "supercluster": "https://github.com/miczuk/supercluster#1e484e08f81ae006fee37c70e90f0933a663f87f",
-    "deep-equal": "^1.0.1"
+    "deep-equal": "^1.0.1",
+    "react-native-fs": "^2.13.3"
   }
 }

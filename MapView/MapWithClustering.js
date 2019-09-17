@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import MapView from 'react-native-maps-osmdroid';
-import { UrlTile } from 'react-native-maps-osmdroid';
+import { UrlTile, FileTile, LocalTile } from 'react-native-maps-osmdroid';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { width as w, height as h } from 'react-native-dimension';
 import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
 import deepEqual from 'deep-equal';
+import { DocumentDirectoryPath } from 'react-native-fs';
 
 export default class MapWithClustering extends Component {
   state = {
@@ -234,6 +235,7 @@ export default class MapWithClustering extends Component {
     return newProps;
   };
 
+
   render() {
     return (
       <>
@@ -250,13 +252,30 @@ export default class MapWithClustering extends Component {
             })
           }}
           ref={this.props.mapRef}
+          mapType={Platform.OS == "android" ? "none" : "standard"}
         >
-          <UrlTile
-            urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
-            maximumZ={19}
-            minimumZ={2}
-            shouldReplaceMapContent={true}
-          />
+          {
+            this.props.offline ?
+              (Platform.OS === 'android' ?
+                (<FileTile
+                  maximumZ={19}
+                  minimumZ={2}
+                  shouldReplaceMapContent={true}
+                />)
+                :
+                (<LocalTile
+                  pathTemplate={`${DocumentDirectoryPath}/offline_tiles/mapTiles/{z}/{x}/{y}.png`}
+                  tileSize={256}
+                />)) :
+              (
+                <UrlTile
+                  urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
+                  maximumZ={19}
+                  minimumZ={2}
+                  shouldReplaceMapContent={true}
+                />
+              )
+          }
           {this.state.clusteredMarkers}
           {this.state.otherChildren}
         </MapView>
