@@ -255,7 +255,7 @@ export default class MapWithClustering extends Component {
           mapType={Platform.OS == "android" ? "none" : "standard"}
         >
           {
-            this.props.listOfDownloadedCountries.length > 0 ?
+            this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.length > 0 ?
               (Platform.OS === 'android' ?
                 (<FileTile
                   maximumZ={19}
@@ -266,7 +266,7 @@ export default class MapWithClustering extends Component {
                 (
                   <>
                     {
-                      this.props.listOfDownloadedCountries.map(countryName => (
+                      this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.map(countryName => (
                         <LocalTile
                           pathTemplate={`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/{z}/{x}/{y}.png`}
                           tileSize={256}
