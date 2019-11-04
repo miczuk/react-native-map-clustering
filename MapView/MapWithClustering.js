@@ -97,9 +97,6 @@ export default class MapWithClustering extends Component {
       );
     }
 
-
-    console.log(deltaToZoom(longitudeDelta), longitudeToTile(), latitudeToTile())
-
     const equal = deepEqual({
         latitude: region.latitude,
         longitude: region.longitude,
@@ -296,8 +293,6 @@ export default class MapWithClustering extends Component {
 
 
   createListOfTiles = () => {
-    console.log('function fired', this.props.listOfDownloadedCountries)
-
     this.props.listOfDownloadedCountries.map(countryName => {
       createFilesListInZip(`${DocumentDirectoryPath}/offline_tiles/`, `${countryName}.zip`)
         .then(tilesNames => {
