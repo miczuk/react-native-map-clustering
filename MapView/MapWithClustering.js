@@ -7,7 +7,8 @@ import { width as w, height as h } from 'react-native-dimension';
 import SuperCluster from 'supercluster';
 import CustomMarker from './CustomMarker';
 import deepEqual from 'deep-equal';
-import { DocumentDirectoryPath } from 'react-native-fs';
+import { DocumentDirectoryPath, exists } from 'react-native-fs';
+import { createFilesListInZip } from "react-native-zip-archive";
 
 
 export default class MapWithClustering extends Component {
@@ -31,8 +32,8 @@ export default class MapWithClustering extends Component {
       fontWeight: 'bold',
     },
     minZoomLevel: null,
-    whichMapViewActive: "further",
-    showCloserMap: false
+    tilesNames: '',
+    showNotification: false,
   };
 
   componentDidMount() {
@@ -50,9 +51,14 @@ export default class MapWithClustering extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    console.log(deltaToZoomNoRound(this.state.currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta));
-    console.log(this.state.showCloserMap)
-    console.log(this.state.whichMapViewActive)
+
+    if (this.props.listOfDownloadedCountries !== prevProps.listOfDownloadedCountries) {
+      this.props.listOfDownloadedCountries.length > 0 && this.createListOfTiles();
+    }
+
+    if (this.state.showNotification !== prevState.showNotification) {
+      this.sendData(true);
+    }
 
     if (this.props.children !== prevProps.children) {
       this.createMarkersOnMap(this.state.currentChildren);
@@ -69,29 +75,30 @@ export default class MapWithClustering extends Component {
         userPosition: this.props.userPosition
       });
     }
-
-    if (this.state.currentRegion && this.state.currentRegion.longitudeDelta !== prevState.currentRegion.longitudeDelta
-      && this.state.currentRegion.latitudeDelta !== prevState.currentRegion.latitudeDelta) {
-
-      if(deltaToZoomNoRound(this.state.currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta) > 7.9
-        && this.state.whichMapViewActive === "further"){
-        this.setState({
-          showCloserMap: true
-        })
-      }
-
-      if(deltaToZoomNoRound(this.state.currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta) < 12.1
-        && this.state.whichMapViewActive === "closer" && this.state.showCloserMap){
-        console.log('change to falsse')
-        this.setState({
-          showCloserMap: false
-        })
-      }
-    }
   }
 
   onRegionChangeComplete = (region) => {
     const { latitude, latitudeDelta, longitude, longitudeDelta } = this.state.currentRegion;
+
+    const longitudeToTile = () => {
+      return Math.floor(((longitude + 180) / 360) * Math.pow(2,  deltaToZoom(longitudeDelta)));
+    }
+
+    const latitudeToTile = () => {
+      return Math.floor(
+        ((1 -
+          Math.log(
+            Math.tan((latitude * Math.PI) / 180) +
+            1 / Math.cos((latitude * Math.PI) / 180)
+          ) /
+          Math.PI) /
+          2) *
+        Math.pow(2, deltaToZoom(longitudeDelta))
+      );
+    }
+
+
+    console.log(deltaToZoom(longitudeDelta), longitudeToTile(), latitudeToTile())
 
     const equal = deepEqual({
         latitude: region.latitude,
@@ -119,6 +126,32 @@ export default class MapWithClustering extends Component {
       } else {
         this.props.onRegionChangeComplete(region);
       }
+    }
+
+    if(Platform.OS === 'android') {
+      !this.state.showNotification
+      && deltaToZoom(longitudeDelta) > 11
+      && this.state.tilesNames
+      && this.state.tilesNames.indexOf(`mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`) === -1
+      && this.setState({
+        showNotification: true
+      })
+    } else {
+      !this.state.showNotification
+      && deltaToZoom(longitudeDelta) > 11
+      && this.props.listOfDownloadedCountries
+      && this.props.listOfDownloadedCountries
+        .map(countryName => {
+            zipExist(`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`)
+              .then( (exists) => {
+                if (!exists) {
+                  this.setState({
+                    showNotification: true
+                  });
+                }
+              });
+          }
+        )
     }
   };
 
@@ -261,160 +294,76 @@ export default class MapWithClustering extends Component {
     return newProps;
   };
 
-  closerMapView = () => {
-    return (
-      <MapView
-        {...this.removeChildrenFromProps(this.props)}
-        ref={(ref) => { this.root = ref; }}
-        region={this.state.currentRegion}
-        onRegionChangeComplete={this.onRegionChangeComplete}
-        onRegionChange={() => {
-          this.state.whichMapViewActive === "further"
-          && deltaToZoomNoRound(this.state.currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta) >= 12
-          && this.setState({
-            whichMapViewActive: "closer"
-          })
-        }}
-        minZoomLevel={12}
-        // maxZoomLevel={this.props.lockMaxZoomLevel ? 17 : 20}
-        maxZoomLevel={15.5}
-        onMapReady={() => {
-          this.setState({
-            minZoomLevel: 2
-          })
-        }}
-        ref={this.props.mapRef}
-        mapType={Platform.OS == "android" ? "none" : "standard"}
-      >
-        {
-          Platform.OS === 'android' ?
-            (<FileTile
-              maximumZ={15.5}
-              minimumZ={12}
-              shouldReplaceMapContent={true}
-            />)
-            :
-            (
-              <>
-                {
-                  this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.map(countryName => (
-                    <LocalTile
-                      pathTemplate={`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/{z}/{x}/{y}.png`}
-                      tileSize={256}
-                       key={countryName}
-                    />
-                  ))
-                }
-              </>
-            )
-        }
-        {this.state.clusteredMarkers}
-        {this.state.otherChildren}
-      </MapView>
-    )
-  }
 
-  furtherMapView = () => {
-    return  (
-      <MapView
-        {...this.removeChildrenFromProps(this.props)}
-        ref={(ref) => {
-          this.root = ref;
-        }}
-        region={this.state.currentRegion}
-        onRegionChangeComplete={this.onRegionChangeComplete}
-        onRegionChange={() => {
-          this.state.whichMapViewActive === "closer"
-          && deltaToZoomNoRound(this.state.currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta) < 8
-          && this.setState({
-            whichMapViewActive: "further"
-          })
-        }}
-        minZoomLevel={this.state.minZoomLevel}
-        // maxZoomLevel={this.props.lockMaxZoomLevel ? 17 : 20}
-        maxZoomLevel={9}
-        onMapReady={() => {
-          this.setState({
-            minZoomLevel: 2
-          })
-        }}
-        ref={this.props.mapRef}
-        mapType={Platform.OS == "android" ? "none" : "standard"}
-      >
-        {
-          Platform.OS === 'android' ?
-            (<FileTile
-              maximumZ={19}
-              minimumZ={2}
-              shouldReplaceMapContent={true}
-            />)
-            :
-            (
-              <>
-                {
-                  this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.map(countryName => (
-                    <LocalTile
-                      pathTemplate={`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/{z}/{x}/{y}.png`}
-                      tileSize={256}
-                      key={countryName}
-                    />
-                  ))
-                }
-              </>
-            )
-        }
-        {this.state.clusteredMarkers}
-        {this.state.otherChildren}
-      </MapView>
-    )
-  }
+  createListOfTiles = () => {
+    console.log('function fired', this.props.listOfDownloadedCountries)
 
-  onlineMapView = () => {
-    return (
-      <MapView
-        {...this.removeChildrenFromProps(this.props)}
-        ref={(ref) => { this.root = ref; }}
-        region={this.state.currentRegion}
-        onRegionChangeComplete={this.onRegionChangeComplete}
-        minZoomLevel={this.state.minZoomLevel}
-        maxZoomLevel={this.props.lockMaxZoomLevel ? 17 : 20}
-        onMapReady={() => {
+    this.props.listOfDownloadedCountries.map(countryName => {
+      createFilesListInZip(`${DocumentDirectoryPath}/offline_tiles/`, `${countryName}.zip`)
+        .then(tilesNames => {
           this.setState({
-            minZoomLevel: 2
-          })
-        }}
-        ref={this.props.mapRef}
-        mapType={Platform.OS == "android" ? "none" : "standard"}
-      >
-        <UrlTile
-          urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
-          maximumZ={17}
-          minimumZ={2}
-          shouldReplaceMapContent={true}
-        />
-        {this.state.clusteredMarkers}
-        {this.state.otherChildren}
-      </MapView>
-    )
-  }
+            tilesNames
+          });
+        });
+    })
+  };
 
-  renderMapView = () => {
-    if(this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.length <= 0) {
-      return this.onlineMapView();
-    }
-    if(deltaToZoomNoRound(this.state.currentRegion.longitudeDelta, this.state.currentRegion.longitudeDelta) >= 8
-      && this.state.showCloserMap) {
-      return this.closerMapView()
-    };
-    return this.furtherMapView();
-  }
+  sendData = value => {
+    this.props.showNoTilesNotification(value);
+  };
+
 
   render() {
     return (
       <>
-        {
-          this.renderMapView()
-        }
+        <MapView
+          {...this.removeChildrenFromProps(this.props)}
+          ref={(ref) => { this.root = ref; }}
+          region={this.state.currentRegion}
+          onRegionChangeComplete={this.onRegionChangeComplete}
+          minZoomLevel={this.state.minZoomLevel}
+          maxZoomLevel={this.props.lockMaxZoomLevel ? 17 : 20}
+          onMapReady={() => {
+            this.setState({
+              minZoomLevel: 2
+            })
+          }}
+          ref={this.props.mapRef}
+          mapType={Platform.OS == "android" ? "none" : "standard"}
+        >
+          {
+            this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.length > 0 ?
+              (Platform.OS === 'android' ?
+                (<FileTile
+                  maximumZ={15}
+                  minimumZ={2}
+                  shouldReplaceMapContent={true}
+                />)
+                :
+                (
+                  <>
+                    {
+                      this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.map(countryName => (
+                        <LocalTile
+                          pathTemplate={`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/{z}/{x}/{y}.png`}
+                          tileSize={256}
+                          key={countryName}
+                        />
+                      ))
+                    }
+                  </>)) :
+              (
+                <UrlTile
+                  urlTemplate={"https://tile.geofabrik.de/a2fc98e387ca4d64939c00495b777b46/{z}/{x}/{y}.png"}
+                  maximumZ={19}
+                  minimumZ={2}
+                  shouldReplaceMapContent={true}
+                />
+              )
+          }
+          {this.state.clusteredMarkers}
+          {this.state.otherChildren}
+        </MapView>
         <View style={styles.licenceBanner}>
           <Text style={styles.licenceBannerText}>Powered by OpenStreetMap</Text>
         </View>
@@ -440,8 +389,6 @@ const totalSize = num => (Math.sqrt((h(100) * h(100)) + (w(100) * w(100))) * num
 const inRange = (val, min, max) => ((val - min) * (val - max) < 0);
 
 const deltaToZoom = delta => Math.round(Math.log(360 / delta) / Math.LN2);
-
-const deltaToZoomNoRound = delta => Math.floor(Math.log(360 / delta) / Math.LN2);
 
 const shouldClustersBeCalculated = delta => {
   const minZoom = 2;
