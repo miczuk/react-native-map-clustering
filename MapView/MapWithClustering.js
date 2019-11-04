@@ -53,7 +53,7 @@ export default class MapWithClustering extends Component {
   componentDidUpdate(prevProps, prevState) {
 
     if (this.props.listOfDownloadedCountries !== prevProps.listOfDownloadedCountries) {
-      this.props.listOfDownloadedCountries.length > 0 && this.createListOfTiles();
+      this.props.listOfDownloadedCountries.length > 0 && Platform.OS === 'android' && this.createListOfTiles();
     }
 
     if (this.state.showNotification !== prevState.showNotification) {
@@ -139,7 +139,7 @@ export default class MapWithClustering extends Component {
       && this.props.listOfDownloadedCountries
       && this.props.listOfDownloadedCountries
         .map(countryName => {
-            zipExist(`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`)
+            exists(`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`)
               .then( (exists) => {
                 if (!exists) {
                   this.setState({
