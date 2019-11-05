@@ -125,30 +125,27 @@ export default class MapWithClustering extends Component {
       }
     }
 
-    if(Platform.OS === 'android') {
-      !this.state.showNotification
-      && deltaToZoom(longitudeDelta) > 11
-      && this.state.tilesNames
-      && this.state.tilesNames.indexOf(`mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`) === -1
-      && this.setState({
-        showNotification: true
-      })
-    } else {
-      !this.state.showNotification
-      && deltaToZoom(longitudeDelta) > 11
-      && this.props.listOfDownloadedCountries
-      && this.props.listOfDownloadedCountries
-        .map(countryName => {
-            exists(`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`)
-              .then( (exists) => {
-                if (!exists) {
-                  this.setState({
-                    showNotification: true
-                  });
-                }
-              });
-          }
-        )
+    if(this.isMapOffline() && !this.state.showNotification && deltaToZoom(longitudeDelta) > 11 && deltaToZoom(longitudeDelta) < 16) {
+      if(Platform.OS === 'android') {
+        this.state.tilesNames
+        && this.state.tilesNames.indexOf(`mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`) === -1
+        && this.setState({
+          showNotification: true
+        })
+      } else {
+        this.props.listOfDownloadedCountries
+          .map(countryName => {
+              exists(`${DocumentDirectoryPath}/offline_tiles/${countryName}/mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`)
+                .then( (exists) => {
+                  if (!exists) {
+                    this.setState({
+                      showNotification: true
+                    });
+                  }
+                });
+            }
+          )
+      }
     }
   };
 
@@ -307,6 +304,8 @@ export default class MapWithClustering extends Component {
     this.props.showNoTilesNotification(value);
   };
 
+  isMapOffline = () => this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.length > 0;
+
 
   render() {
     return (
@@ -317,7 +316,7 @@ export default class MapWithClustering extends Component {
           region={this.state.currentRegion}
           onRegionChangeComplete={this.onRegionChangeComplete}
           minZoomLevel={this.state.minZoomLevel}
-          maxZoomLevel={this.props.lockMaxZoomLevel ? 17 : 20}
+          maxZoomLevel={this.isMapOffline() ? 15.5 : 17.5}
           onMapReady={() => {
             this.setState({
               minZoomLevel: 2
@@ -327,7 +326,7 @@ export default class MapWithClustering extends Component {
           mapType={Platform.OS == "android" ? "none" : "standard"}
         >
           {
-            this.props.listOfDownloadedCountries && this.props.listOfDownloadedCountries.length > 0 ?
+            this.isMapOffline() ?
               (Platform.OS === 'android' ?
                 (<FileTile
                   maximumZ={15}
