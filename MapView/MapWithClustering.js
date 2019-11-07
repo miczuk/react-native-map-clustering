@@ -125,7 +125,7 @@ export default class MapWithClustering extends Component {
       }
     }
 
-    if(this.isMapOffline() && !this.state.showNotification && deltaToZoom(longitudeDelta) > 11 && deltaToZoom(longitudeDelta) < 16) {
+    if(this.isMapOffline() && !this.state.showNotification && deltaToZoom(longitudeDelta) > 5 && deltaToZoom(longitudeDelta) < 16) {
       if(Platform.OS === 'android') {
         this.state.tilesNames
         && this.state.tilesNames.indexOf(`mapTiles/${deltaToZoom(longitudeDelta)}/${longitudeToTile()}/${latitudeToTile()}.png`) === -1
@@ -315,7 +315,7 @@ export default class MapWithClustering extends Component {
           ref={(ref) => { this.root = ref; }}
           region={this.state.currentRegion}
           onRegionChangeComplete={this.onRegionChangeComplete}
-          minZoomLevel={this.state.minZoomLevel}
+          minZoomLevel={this.isMapOffline() ? 5 : 2}
           maxZoomLevel={this.isMapOffline() ? 15.5 : 17.5}
           onMapReady={() => {
             this.setState({
